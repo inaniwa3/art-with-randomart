@@ -50,7 +50,7 @@ func main() {
 				i := <-stats
 				tn += i
 			}
-			fmt.Printf("%d keys per second\n", tn)
+			// fmt.Printf("%d keys per second\n", tn)
 			tn = 0
 		}
 	}()
@@ -109,7 +109,7 @@ func worker(starting Board, statsout chan int, resultsout chan ArtKey, workin ch
 	for {
 		pub, priv, mar, nBoard := makeKey()
 		keysd++
-		if compareBoardScore(lastBoard, nBoard) < smooth {
+		if boardScore(nBoard) < smooth {
 			lastBoard = nBoard
 			newB := ArtKey{
 				Render:  lastBoard,
@@ -118,10 +118,14 @@ func worker(starting Board, statsout chan int, resultsout chan ArtKey, workin ch
 				Marshal: mar,
 			}
 
+			spub, _ := ssh.NewPublicKey(pub)
+			pubBytes := ssh.MarshalAuthorizedKey(spub)
+			fmt.Print(string(pubBytes))
+
 			select {
 			case resultsout <- newB:
 			default:
-				fmt.Print(":(")
+				// fmt.Print(":(")
 			}
 
 		}
@@ -159,6 +163,30 @@ func compareBoardScore(before, after Board) int {
 	}
 
 	return diff
+}
+
+var fireworks = [][]int{
+	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+	{0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0},
+	{0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0},
+	{0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,0},
+	{0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0},
+	{0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,0},
+	{0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0},
+	{0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0},
+	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+}
+
+func boardScore(board Board) int {
+	for x, row := range board.Tiles {
+		for y, c := range row {
+			if c != 0 && fireworks[x][y] == 0 {
+				return 999
+			}
+		}
+	}
+
+	return 0
 }
 
 func makeKey() (publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, marshal []byte, board Board) {
